@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>暖聊 - 网页聊天室</title>
+    <style>
+        :root {
+            --bg: #FFF8E1;
+            --bg-light: #FFFDE7;
+            --card-bg: #FFFFFF;
+            --primary: #F9A825;
+            --primary-dark: #F57F17;
+            --primary-light: #FFECB3;
+            --text: #3E2723;
+            --text-secondary: #6D4C41;
+            --text-muted: #A1887F;
+            --border: #FFE0B2;
+            --shadow: 0 6px 30px rgba(0, 0, 0, 0.08);
+            --shadow-hover: 0 8px 40px rgba(0, 0, 0, 0.12);
+            --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.05);
+            --radius: 18px;
+            --radius-sm: 12px;
+            --radius-xs: 8px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --bubble-self: #FFECB3;
+            --bubble-other: #FFFFFF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background-image: radial-gradient(circle at 20% 20%, #FFF9C4 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, #FFE0B2 0%, transparent 50%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            position: relative;
+            min-height: 600px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+        }
+
+        .container:hover {
+            box-shadow: var(--shadow-hover);
+        }
+
+        /* 页面切换动画 */
+        .page {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            animation: fadeIn 0.4s ease;
+        }
+        .page.active {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 头部 */
+        .header {
+            background: linear-gradient(135deg, var(--primary-light), #FFF3E0);
+            padding: 20px 24px;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: 1px;
+        }
+        .header h1 span {
+            color: var(--primary-dark);
+        }
+        .header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.7);
+            padding: 6px 14px;
+            border-radius: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        .header .user-info .avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        /* 内容区域 */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            min-height: 0;
+            scroll-behavior: smooth;
+        }
+        .content::-webkit-scrollbar {
+            width: 5px;
+        }
+        .content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .content::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 10px;
+        }
+
+        /* 输入框 */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .input-group input,
+        .input-group select {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            outline: none;
+            transition: var(--transition);
+            background: var(--bg-light);
+            color: var(--text);
+            font-family: inherit;
+        }
+        .input-group input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(249, 168, 37, 0.15);
+            background: white;
+        }
+        .input-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* 按钮 */
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 15px rgba(249, 168, 37, 0.4);
+        }
+        .btn-primary:hover {
+            box-shadow: 0 6px 25px rgba(249, 168, 37, 0.5);
+        }
+        .btn-secondary {
+            background: var(--primary-light);
+            color: var(--text);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        }
+        .btn-secondary:hover {
+            background: #FFE082;
+        }
+        .btn-danger {
+            background: #FFCDD2;
+            color: #C62828;
+            box-shadow: 0 2px 10px rgba(198, 40, 40, 0.15);
+        }
+        .btn-danger:hover {
+            background: #EF9A9A;
+        }
+        .btn-success {
+            background: #C8E6C9;
+            color: #2E7D32;
+            box-shadow: 0 2px 10px rgba(46, 125, 50, 0.15);
+        }
+        .btn-success:hover {
+            background: #A5D6A7;
+        }
+        .btn-sm {
+            padding: 7px 14px;
+            font-size: 0.8rem;
+            border-radius: 8px;
+        }
+        .btn-block {
+            width: 100%;
+            justify-content: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 卡片 */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-sm);
+            padding: 16px 18px;
+            margin-bottom: 14px;
+            border: 1.5px solid var(--border);
+            transition: var(--transition);
+        }
+        .card:hover {
+            box-shadow: var(--shadow);
+            border-color: var(--primary);
+        }
+
+        /* 聊天室列表项 */
+        .room-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: var(--card-bg);
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border);
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+        .room-item:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow);
+            transform: translateY(-2px);
+        }
+        .room-item .room-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .room-item .room-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .room-item .room-code {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+        .room-item .room-badge {
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .room-item .room-badge.owner {
+            background: #FFF3E0;
+            color: #E65100;
+        }
+
+        /* 聊天消息 */
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 0;
+            background: var(--bg-light);
+        }
+        .messages-area::-webkit-scrollbar {
+            width: 5px;
+        }
+        .messages-area::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 10px;
+        }
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 75%;
+            animation: msgIn 0.3s ease;
+        }
+        @keyframes msgIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .message.self {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+        .message.other {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+        .message .msg-sender {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 3px;
+            padding: 0 4px;
+        }
+        .message .msg-bubble {
+            padding: 10px 14px;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            word-break: break-word;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            transition: var(--transition);
+        }
+        .message.self .msg-bubble {
+            background: var(--bubble-self);
+            border-bottom-right-radius: 4px;
+        }
+        .message.other .msg-bubble {
+            background: var(--bubble-other);
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--border);
+        }
+        .message .msg-time {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            margin-top: 3px;
+            padding: 0 4px;
+        }
+        .message.self .msg-time {
+            text-align: right;
+        }
+
+        /* 表单 */
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            outline: none;
+            transition: var(--transition);
+            background: var(--bg-light);
+            color: var(--text);
+            font-family: inherit;
+        }
+        .form-group input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(249, 168, 37, 0.15);
+            background: white;
+        }
+
+        /* 提示消息 */
+        .toast {
+            position: fixed;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--text);
+            color: white;
+            padding: 12px 24px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+            z-index: 9999;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            max-width: 90%;
+            text-align: center;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast.success {
+            background: #2E7D32;
+        }
+        .toast.error {
+            background: #C62828;
+        }
+        .toast.info {
+            background: #1565C0;
+        }
+
+        /* 模态框 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+            animation: fadeInOverlay 0.3s ease;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        @keyframes fadeInOverlay {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .modal {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 28px 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            animation: modalIn 0.35s ease;
+        }
+        @keyframes modalIn {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .modal h3 {
+            font-size: 1.2rem;
+            margin-bottom: 16px;
+            text-align: center;
+            color: var(--text);
+        }
+        .modal .form-group {
+            margin-bottom: 14px;
+        }
+        .modal .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+        }
+        .modal .btn-row .btn {
+            flex: 1;
+            justify-content: center;
+            display: flex;
+            align-items: center;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            display: block;
+        }
+        .empty-state p {
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* 标签切换 */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .tabs .tab {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 2px solid transparent;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: inherit;
+        }
+        .tabs .tab.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 15px rgba(249, 168, 37, 0.4);
+        }
+        .tabs .tab:hover:not(.active) {
+            background: var(--primary-light);
+            color: var(--text);
+        }
+
+        /* 响应式 */
+        @media (max-width: 500px) {
+            .container {
+                max-height: 100vh;
+                border-radius: 0;
+                max-width: 100%;
+                min-height: 100vh;
+            }
+            .header {
+                border-radius: 0;
+                padding: 16px 18px;
+            }
+            body {
+                padding: 0;
+            }
+            .content {
+                padding: 14px;
+            }
+            .message {
+                max-width: 85%;
+            }
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* 加载动画 */
+        .loading-dots {
+            display: inline-flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .loading-dots .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--primary);
+            animation: bounce 1.2s infinite;
+        }
+        .loading-dots .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .loading-dots .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes bounce {
+            0%,
+            80%,
+            100% {
+                transform: scale(0.6);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* 提示文字 */
+        .hint {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            text-align: center;
+        }
+
+        /* 聊天室头部 */
+        .chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 18px;
+            background: white;
+            border-bottom: 2px solid var(--border);
+            flex-shrink: 0;
+            gap: 8px;
+        }
+        .chat-header .room-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .chat-header .room-code-display {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+        .chat-input-area {
+            display: flex;
+            gap: 8px;
+            padding: 12px;
+            background: white;
+            border-top: 2px solid var(--border);
+            flex-shrink: 0;
+        }
+        .chat-input-area input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: 25px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: var(--transition);
+            background: var(--bg-light);
+            color: var(--text);
+            font-family: inherit;
+        }
+        .chat-input-area input:focus {
+            border-color: var(--primary);
+            background: white;
+        }
+        .chat-input-area .btn {
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        /* 加入请求项 */
+        .request-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: var(--bg-light);
+            border-radius: var(--radius-xs);
+            margin-bottom: 8px;
+            border: 1px solid var(--border);
+            gap: 8px;
+        }
+        .request-item .req-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .request-item .req-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .request-item .req-phone {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .request-item .req-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Toast 提示 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- 模态框 -->
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal" id="modalContent">
+            <!-- 动态填充 -->
+        </div>
+    </div>
+
+    <div class="container" id="appContainer">
+        <!-- ============ 页面1: 登录/注册 ============ -->
+        <div class="page active" id="pageAuth">
+            <div class="header" style="justify-content: center; text-align: center; flex-direction: column; gap: 6px;">
+                <h1>🏠 <span>暖聊</span> ChatRoom</h1>
+                <p style="font-size:0.85rem;color:var(--text-muted);">温暖你的每一次对话</p>
+            </div>
+            <div class="content" style="display:flex;flex-direction:column;justify-content:center;">
+                <div class="tabs" id="authTabs" style="justify-content:center;">
+                    <button class="tab active" data-tab="login">🔑 登录</button>
+                    <button class="tab" data-tab="register">📝 注册</button>
+                </div>
+                <!-- 登录表单 -->
+                <div id="loginForm">
+                    <div class="form-group">
+                        <label>📱 电话号码</label>
+                        <input type="tel" id="loginPhone" placeholder="请输入11位手机号" maxlength="11">
+                    </div>
+                    <div class="form-group">
+                        <label>🔒 密码</label>
+                        <input type="password" id="loginPassword" placeholder="请输入密码" onkeydown="if(event.key==='Enter')doLogin()">
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="doLogin()">登 录</button>
+                </div>
+                <!-- 注册表单 -->
+                <div id="registerForm" style="display:none;">
+                    <div class="form-group">
+                        <label>📱 电话号码</label>
+                        <input type="tel" id="regPhone" placeholder="请输入11位手机号" maxlength="11">
+                    </div>
+                    <div class="form-group">
+                        <label>👤 用户名</label>
+                        <input type="text" id="regUsername" placeholder="给自己起个好听的名字" maxlength="20">
+                    </div>
+                    <div class="form-group">
+                        <label>🔒 密码</label>
+                        <input type="password" id="regPassword" placeholder="设置登录密码" onkeydown="if(event.key==='Enter')doRegister()">
+                    </div>
+                    <div class="form-group">
+                        <label>🔒 确认密码</label>
+                        <input type="password" id="regPassword2" placeholder="再次输入密码" onkeydown="if(event.key==='Enter')doRegister()">
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="doRegister()">注 册</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ 页面2: 主页（聊天室列表） ============ -->
+        <div class="page" id="pageHome">
+            <div class="header">
+                <h1>🏠 <span>暖聊</span></h1>
+                <div class="user-info">
+                    <div class="avatar" id="homeAvatar">👤</div>
+                    <span id="homeUsername">用户</span>
+                    <button class="btn btn-sm btn-secondary" onclick="doLogout()" style="padding:5px 10px;font-size:0.7rem;">退出</button>
+                </div>
+            </div>
+            <div class="content">
+                <!-- 搜索区域 -->
+                <div class="card" style="padding:16px;">
+                    <div style="font-weight:600;margin-bottom:10px;font-size:0.9rem;">🔍 搜索聊天室</div>
+                    <div class="input-group" style="margin-bottom:6px;">
+                        <input type="text" id="searchCode" placeholder="输入6位房间号" maxlength="6" style="letter-spacing:3px;font-weight:600;">
+                        <button class="btn btn-primary btn-sm" onclick="searchRoom()">搜索</button>
+                    </div>
+                    <div class="hint">输入房间号后需要密码和房主同意才能加入</div>
+                </div>
+                <!-- 创建按钮 -->
+                <button class="btn btn-primary btn-block" onclick="showCreateRoomModal()" style="margin-bottom:16px;">
+                    ➕ 创建新聊天室 <span id="createRoomCount" style="font-size:0.75rem;opacity:0.8;"></span>
+                </button>
+                <!-- 标签切换 -->
+                <div class="tabs">
+                    <button class="tab active" id="tabJoined" onclick="switchRoomTab('joined')">💬 我的聊天室</button>
+                    <button class="tab" id="tabCreated" onclick="switchRoomTab('created')">📌 我创建的</button>
+                </div>
+                <!-- 聊天室列表 -->
+                <div id="roomList">
+                    <div class="empty-state">
+                        <span class="icon">📭</span>
+                        <p>暂无聊天室<br>搜索或创建一个吧！</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ 页面3: 聊天室内部 ============ -->
+        <div class="page" id="pageChat">
+            <div class="chat-header">
+                <button class="btn btn-sm btn-secondary" onclick="leaveChatRoom()" style="padding:6px 10px;">← 返回</button>
+                <div style="flex:1;text-align:center;min-width:0;">
+                    <div class="room-title" id="chatRoomName">聊天室</div>
+                    <div class="room-code-display" id="chatRoomCode">房间号: ------</div>
+                </div>
+                <div style="width:50px;"></div>
+            </div>
+            <!-- 加入请求（房主可见） -->
+            <div id="joinRequestsArea" style="display:none;padding:10px 16px;background:#FFF3E0;border-bottom:2px solid var(--border);flex-shrink:0;">
+                <div style="font-weight:600;font-size:0.85rem;margin-bottom:8px;">📋 待处理的加入请求</div>
+                <div id="joinRequestsList"></div>
+            </div>
+            <!-- 消息区域 -->
+            <div class="messages-area" id="messagesArea">
+                <!-- 消息会动态渲染 -->
+            </div>
+            <!-- 输入区域 -->
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" placeholder="输入消息..." onkeydown="if(event.key==='Enter')sendMessage()">
+                <button class="btn btn-primary" onclick="sendMessage()">📨</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 全局状态 ====================
+        const API_BASE = '';
+        let currentUser = null;
+        let currentPage = 'auth';
+        let currentRoomCode = null;
+        let currentRoomTab = 'joined';
+        let pollInterval = null;
+        let lastMessageCount = 0;
+        let pendingJoinRequestId = null;
+        let searchResultRoom = null;
+
+        // ==================== Toast 提示 ====================
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type;
+            // 强制重排
+            void toast.offsetWidth;
+            toast.classList.add('show');
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        // ==================== 模态框 ====================
+        function showModal(html) {
+            document.getElementById('modalContent').innerHTML = html;
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.getElementById('modalContent').innerHTML = '';
+        }
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // ==================== 页面切换 ====================
+        function switchPage(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page' + page.charAt(0).toUpperCase() + page.slice(1)).classList.add('active');
+            currentPage = page;
+            if (page === 'home') {
+                loadUserRooms();
+                updateUserInfo();
+            }
+            if (page === 'chat' && currentRoomCode) {
+                startPolling();
+            } else {
+                stopPolling();
+            }
+        }
+
+        // ==================== 认证相关 ====================
+        async function doRegister() {
+            const phone = document.getElementById('regPhone').value.trim();
+            const username = document.getElementById('regUsername').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const password2 = document.getElementById('regPassword2').value;
+
+            if (!phone || !username || !password || !password2) {
+                showToast('请填写所有字段', 'error');
+                return;
+            }
+            if (!/^\d{11}$/.test(phone)) {
+                showToast('请输入11位手机号', 'error');
+                return;
+            }
+            if (password !== password2) {
+                showToast('两次密码输入不一致', 'error');
+                return;
+            }
+            if (password.length < 4) {
+                showToast('密码至少4位', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch(API_BASE + '/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, username, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('注册成功！请登录', 'success');
+                    document.querySelector('[data-tab="login"]').click();
+                    document.getElementById('loginPhone').value = phone;
+                } else {
+                    showToast(data.message || '注册失败', 'error');
+                }
+            } catch (e) {
+                showToast('网络错误', 'error');
+            }
+        }
+
+        async function doLogin() {
+            const phone = document.getElementById('loginPhone').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!phone || !password) {
+                showToast('请输入手机号和密码', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch(API_BASE + '/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    currentUser = data.user;
+                    showToast('欢迎回来，' + data.user.username + '！', 'success');
+                    switchPage('home');
+                    document.getElementById('loginPassword').value = '';
+                } else {
+                    showToast(data.message || '登录失败', 'error');
+                }
+            } catch (e) {
+                showToast('网络错误', 'error');
+            }
+        }
+
+        async function doLogout() {
+            try {
+                await fetch(API_BASE + '/api/logout', { method: 'POST' });
+            } catch (e) {}
+            currentUser = null;
+            currentRoomCode = null;
+            stopPolling();
+            switchPage('auth');
+            showToast('已退出登录', 'info');
+        }
+
+        function updateUserInfo() {
+            if (currentUser) {
+                document.getElementById('homeUsername').textContent = currentUser.username;
+                document.getElementById('homeAvatar').textContent = currentUser.username.charAt(0).toUpperCase();
+            }
+        }
+
+        // ==================== 聊天室相关 ====================
+        async function loadUserRooms() {
+            if (!currentUser) return;
+            try {
+                const res = await fetch(API_BASE + '/api/rooms');
+                const data = await res.json();
+                if (data.success) {
+                    renderRoomList(data.rooms, data.created_rooms);
+                    document.getElementById('createRoomCount').textContent = `(${data.created_count}/5)`;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function renderRoomList(joinedRooms, createdRooms) {
+            const listEl = document.getElementById('roomList');
+            const roomsToShow = currentRoomTab === 'joined' ? joinedRooms : createdRooms;
+
+            if (!roomsToShow || roomsToShow.length === 0) {
+                listEl.innerHTML = `
+                    <div class="empty-state">
+                        <span class="icon">📭</span>
+                        <p>${currentRoomTab === 'joined' ? '暂无聊天室<br>搜索或创建一个吧！' : '你还没有创建聊天室'}</p>
+                    </div>`;
+                return;
+            }
+
+            listEl.innerHTML = roomsToShow.map(room => {
+                const isOwner = room.owner === currentUser.phone;
+                return `
+                    <div class="room-item" onclick="enterRoom('${room.code}')">
+                        <div class="room-info">
+                            <div class="room-name">${escapeHtml(room.name)}</div>
+                            <div class="room-code">🔢 ${room.code} · 👥 ${room.member_count}人</div>
+                        </div>
+                        ${isOwner ? '<span class="room-badge owner">👑 房主</span>' : '<span class="room-badge">💬 成员</span>'}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function switchRoomTab(tab) {
+            currentRoomTab = tab;
+            document.getElementById('tabJoined').classList.toggle('active', tab === 'joined');
+            document.getElementById('tabCreated').classList.toggle('active', tab === 'created');
+            loadUserRooms();
+        }
+
+        async function searchRoom() {
+            const code = document.getElementById('searchCode').value.trim();
+            if (!code || code.length !== 6) {
+                showToast('请输入6位房间号', 'error');
+                return;
+            }
+            try {
+                const res = await fetch(API_BASE + '/api/search_room?code=' + code);
+                const data = await res.json();
+                if (data.success) {
+                    searchResultRoom = data.room;
+                    // 检查是否已加入
+                    if (data.room.is_member) {
+                        showToast('你已在该聊天室中', 'info');
+                        enterRoom(code);
+                        return;
+                    }
+                    if (data.room.is_owner) {
+                        showToast('这是你创建的聊天室', 'info');
+                        enterRoom(code);
+                        return;
+                    }
+                    // 显示密码输入模态框
+                    showModal(`
+                        <h3>🔑 输入房间密码</h3>
+                        <div style="text-align:center;margin-bottom:14px;">
+                            <div style="font-size:1.1rem;font-weight:600;">${escapeHtml(data.room.name)}</div>
+                            <div style="font-size:0.8rem;color:var(--text-muted);">房间号: ${data.room.code}</div>
+                            <div style="font-size:0.8rem;color:var(--text-muted);">房主: ${escapeHtml(data.room.owner_name)}</div>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="roomPasswordInput" placeholder="请输入房间密码" onkeydown="if(event.key==='Enter')submitJoinRoom()">
+                        </div>
+                        <div class="btn-row">
+                            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                            <button class="btn btn-primary" onclick="submitJoinRoom()">申请加入</button>
+                        </div>
+                    `);
+                    setTimeout(() => document.getElementById('roomPasswordInput')?.focus(), 100);
+                } else {
+                    showToast(data.message || '未找到该房间', 'error');
+                }
+            } catch (e) {
+                showToast('网络错误', 'error');
+            }
+        }
+
+        async function submitJoinRoom() {
+            const password = document.getElementById('roomPasswordInput')?.value || '';
+            if (!searchResultRoom) return;
+            try {
+                const res = await fetch(API_BASE + '/api/join_room', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: searchResultRoom.code, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (data.status === 'approved') {
+                        showToast('成功加入聊天室！', 'success');
+                        closeModal();
+                        enterRoom(searchResultRoom.code);
+                    } else if (data.status === 'pending') {
+                        showToast('已发送申请，等待房主同意...', 'info');
+                        closeModal();
+                        pendingJoinRequestId = data.request_id;
+                        // 开始轮询检查申请状态
+                        startPendingCheck();
+                    }
+                } else {
+                    if (data.need_password) {
+                        showToast('密码错误', 'error');
+                    } else {
+                        showToast(data.message || '加入失败', 'error');
+                    }
+                }
+            } catch (e) {
+                showToast('网络错误', 'error');
+            }
+        }
+
+        let pendingCheckInterval = null;
+
+        function startPendingCheck() {
+            stopPendingCheck();
+            pendingCheckInterval = setInterval(async () => {
+                try {
+                    const res = await fetch(API_BASE + '/api/check_join_request?request_id=' +
+                        pendingJoinRequestId);
+                    const data = await res.json();
+                    if (data.success) {
+                        if (data.status === 'approved') {
+                            stopPendingCheck();
+                            showToast('🎉 房主已同意，欢迎加入！', 'success');
+                            enterRoom(data.room_code);
+                        } else if (data.status === 'rejected') {
+                            stopPendingCheck();
+                            showToast('😔 房主拒绝了你的加入请求', 'error');
+                        }
+                    }
+                } catch (e) {}
+            }, 2000);
+        }
+
+        function stopPendingCheck() {
+            if (pendingCheckInterval) {
+                clearInterval(pendingCheckInterval);
+                pendingCheckInterval = null;
+            }
+        }
+
+        function showCreateRoomModal() {
+            if (!currentUser) return;
+            // 检查创建数量
+            fetch(API_BASE + '/api/rooms').then(r => r.json()).then(data => {
+                if (data.created_count >= 5) {
+                    showToast('你已达到创建上限（5个）', 'error');
+                    return;
+                }
+                showModal(`
+                    <h3>➕ 创建新聊天室</h3>
+                    <div class="form-group">
+                        <label>🏷️ 房间名称</label>
+                        <input type="text" id="newRoomName" placeholder="给聊天室起个名字" maxlength="20">
+                    </div>
+                    <div class="form-group">
+                        <label>🔒 房间密码</label>
+                        <input type="password" id="newRoomPassword" placeholder="设置进入密码" onkeydown="if(event.key==='Enter')createRoom()">
+                    </div>
+                    <div class="hint" style="margin-bottom:8px;">其他人需要此密码+你的同意才能加入</div>
+                    <div class="btn-row">
+                        <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                        <button class="btn btn-primary" onclick="createRoom()">创建</button>
+                    </div>
+                `);
+                setTimeout(() => document.getElementById('newRoomName')?.focus(), 100);
+            });
+        }
+
+        async function createRoom() {
+            const name = document.getElementById('newRoomName')?.value.trim();
+            const password = document.getElementById('newRoomPassword')?.value || '';
+            if (!name) {
+                showToast('请输入房间名称', 'error');
+                return;
+            }
+            if (!password) {
+                showToast('请设置房间密码', 'error');
+                return;
+            }
+            try {
+                const res = await fetch(API_BASE + '/api/create_room', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('✅ 聊天室创建成功！房间号: ' + data.room_code, 'success');
+                    closeModal();
+                    loadUserRooms();
+                    // 显示房间号让用户记住
+                    setTimeout(() => {
+                        showModal(`
+                            <h3>🎉 创建成功！</h3>
+                            <div style="text-align:center;padding:20px;">
+                                <div style="font-size:0.9rem;color:var(--text-muted);">你的房间号是</div>
+                                <div style="font-size:2.5rem;font-weight:700;letter-spacing:6px;color:var(--primary-dark);margin:12px 0;">${data.room_code}</div>
+                                <div style="font-size:0.85rem;color:var(--text-muted);">请牢记此号码，其他人通过它找到你的聊天室</div>
+                            </div>
+                            <div class="btn-row">
+                                <button class="btn btn-primary btn-block" onclick="closeModal()">知道了</button>
+                            </div>
+                        `);
+                    }, 500);
+                } else {
+                    showToast(data.message || '创建失败', 'error');
+                }
+            } catch (e) {
+                showToast('网络错误', 'error');
+            }
+        }
+
+        async function enterRoom(code) {
+            try {
+                const res = await fetch(API_BASE + '/api/room/' + code + '/info');
+                const data = await res.json();
+                if (data.success) {
+                    currentRoomCode = code;
+                    document.getElementById('chatRoomName').textContent = data.room.name;
+                    document.getElementById('chatRoomCode').textContent = '房间号: ' + data.room.code;
+                    document.getElementById('joinRequestsArea').style.display = data.room.is_owner ? 'block' :
+                        'none';
+                    lastMessageCount = 0;
+                    switchPage('chat');
+                    loadMessages();
+                    loadJoinRequests();
+                    startPolling();
+                } else {
+                    showToast(data.message || '无法进入聊天室', 'error');
+                }
+            } catch (e) {
+                showToast('网络错误', 'error');
+            }
+        }
+
+        function leaveChatRoom() {
+            currentRoomCode = null;
+            stopPolling();
+            switchPage('home');
+            loadUserRooms();
+        }
+
+        async function loadMessages() {
+            if (!currentRoomCode) return;
+            try {
+                const res = await fetch(API_BASE + '/api/room/' + currentRoomCode + '/messages');
+                const data = await res.json();
+                if (data.success) {
+                    if (data.messages.length !== lastMessageCount) {
+                        lastMessageCount = data.messages.length;
+                        renderMessages(data.messages);
+                    }
+                }
+            } catch (e) {}
+        }
+
+        function renderMessages(messages) {
+            const area = document.getElementById('messagesArea');
+            area.innerHTML = messages.map(msg => {
+                const isSelf = msg.sender === currentUser.phone;
+                return `
+                    <div class="message ${isSelf ? 'self' : 'other'}">
+                        <div class="msg-sender">${isSelf ? '我' : escapeHtml(msg.username)}</div>
+                        <div class="msg-bubble">${escapeHtml(msg.content)}</div>
+                        <div class="msg-time">${msg.timestamp}</div>
+                    </div>
+                `;
+            }).join('');
+            area.scrollTop = area.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const content = input.value.trim();
+            if (!content || !currentRoomCode) return;
+            input.value = '';
+            try {
+                const res = await fetch(API_BASE + '/api/room/' + currentRoomCode + '/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    loadMessages();
+                }
+            } catch (e) {}
+        }
+
+        async function loadJoinRequests() {
+            if (!currentRoomCode) return;
+            try {
+                const res = await fetch(API_BASE + '/api/room/' + currentRoomCode + '/requests');
+                const data = await res.json();
+                if (data.success && data.requests) {
+                    renderJoinRequests(data.requests);
+                }
+            } catch (e) {}
+        }
+
+        function renderJoinRequests(requests) {
+            const container = document.getElementById('joinRequestsList');
+            const pendingReqs = requests.filter(r => r.status === 'pending');
+            if (pendingReqs.length === 0) {
+                container.innerHTML = '<div style="font-size:0.8rem;color:var(--text-muted);text-align:center;">暂无待处理请求</div>';
+                return;
+            }
+            container.innerHTML = pendingReqs.map(req => `
+                <div class="request-item">
+                    <div class="req-info">
+                        <div class="req-name">${escapeHtml(req.username)}</div>
+                        <div class="req-phone">${req.phone}</div>
+                    </div>
+                    <div class="req-actions">
+                        <button class="btn btn-sm btn-success" onclick="respondRequest(${req.id},'approved')">✓ 同意</button>
+                        <button class="btn btn-sm btn-danger" onclick="respondRequest(${req.id},'rejected')">✗ 拒绝</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function respondRequest(requestId, status) {
+            try {
+                const res = await fetch(API_BASE + '/api/respond_join_request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ request_id: requestId, status })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(status === 'approved' ? '已同意加入' : '已拒绝', 'success');
+                    loadJoinRequests();
+                } else {
+                    showToast(data.message || '操作失败', 'error');
+                }
+            } catch (e) {
+                showToast('网络错误', 'error');
+            }
+        }
+
+        function startPolling() {
+            stopPolling();
+            pollInterval = setInterval(() => {
+                if (currentPage === 'chat' && currentRoomCode) {
+                    loadMessages();
+                    loadJoinRequests();
+                } else if (currentPage === 'home') {
+                    loadUserRooms();
+                }
+            }, 1500);
+        }
+
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ==================== 事件绑定 ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            // 认证标签切换
+            document.querySelectorAll('#authTabs .tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('#authTabs .tab').forEach(t => t.classList.remove(
+                        'active'));
+                    this.classList.add('active');
+                    const isLogin = this.dataset.tab === 'login';
+                    document.getElementById('loginForm').style.display = isLogin ? 'block' :
+                        'none';
+                    document.getElementById('registerForm').style.display = isLogin ? 'none' :
+                        'block';
+                });
+            });
+
+            // 检查是否已登录（通过session）
+            fetch(API_BASE + '/api/check_session').then(r => r.json()).then(data => {
+                if (data.success && data.user) {
+                    currentUser = data.user;
+                    switchPage('home');
+                }
+            }).catch(() => {});
+
+            // 停止轮询当页面关闭时
+            window.addEventListener('beforeunload', stopPolling);
+        });
+    </script>
+</body>
+</html>
